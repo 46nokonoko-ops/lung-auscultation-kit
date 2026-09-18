@@ -1,0 +1,19 @@
+{
+  "name": "肺音聴診トレーナー",
+  "short_name": "肺音聴診",
+  "description": "両肺4分画に肺音を配置して聴診を練習・出題できるOSCE対策ツール",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f2f3",
+  "theme_color": "#9b1b30",
+  "categories": ["education", "medical"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

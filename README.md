@@ -2,16 +2,20 @@
 
 両肺を4分画（右上・右下・左上・左下）に分け、各区画に任意の肺音を割り当てて聴診をシミュレーションする臨床OSCE対策キット。
 
+PWA として作ってあるので、ブラウザの「ホーム画面に追加」でアプリとして使えます。
+一度開けば音源ごとキャッシュされ、**オフラインでも動きます**。
+
 ## 起動
 
-`index.html` をダブルクリックしてブラウザで開くだけ。
-うまく音が出ない場合はローカルサーバ経由で開く：
+ローカルで動かす場合は Service Worker の都合でサーバ経由が必要です：
 
 ```bash
 python3 "/Users/nokonoko/Desktop/claude code/lung-auscultation-kit/serve.py"
 ```
 
 → ブラウザで http://127.0.0.1:8742
+
+（`index.html` を直接ダブルクリックしても動きますが、その場合オフライン機能は無効です）
 
 ## 使い方
 
@@ -53,3 +57,25 @@ python3 "/Users/nokonoko/Desktop/claude code/lung-auscultation-kit/serve.py"
 未収録：stridor、胸膜摩擦音、気管支呼吸音化。音源を `sounds/` に置き、`index.html` の `SOUNDS` に1行追加すれば選択肢に増やせる。
 
 教育目的の個人利用を想定。
+
+## ファイル構成
+
+| パス | 役割 |
+|---|---|
+| `index.html` | アプリ本体（HTML/CSS/JS 一体） |
+| `manifest.json` | PWA 設定。アプリ名・アイコン・全画面表示 |
+| `sw.js` | Service Worker。音源を含めてキャッシュしオフライン対応 |
+| `icons/` | ホーム画面用アイコン（192/512/maskable/apple-touch） |
+| `sounds/` | 肺音の音源 |
+| `serve.py` | ローカル確認用の簡易サーバ |
+
+`index.html` や音源を更新したら、`sw.js` の `CACHE` の版数（`lung-trainer-v1`）を上げてください。
+上げないと、既に開いたことのある端末で古いキャッシュが表示され続けます。
+
+## 公開について
+
+GitHub Pages で配信する想定です。パスはすべて相対で書いてあるので、
+`https://<ユーザー名>.github.io/<リポジトリ名>/` のようなサブパス配信でもそのまま動きます。
+
+音源は第三者が教育目的で公開している録音です。リポジトリを public にすると
+再配布にあたる点に注意してください。
