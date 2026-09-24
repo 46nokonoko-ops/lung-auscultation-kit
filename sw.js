@@ -2,7 +2,7 @@
    音源を含めて全部キャッシュするので、一度開けばオフラインでも動きます。
    中身を更新したら CACHE の数字を上げてください（古いキャッシュは自動で消えます）。 */
 
-const CACHE = 'auscultation-trainer-v2';
+const CACHE = 'auscultation-trainer-v3';
 
 /* SW から見た相対パスで解決する（GitHub Pages のサブパス配信に対応） */
 const ASSETS = [
@@ -68,6 +68,31 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;   // Google Fonts 等はブラウザ任せ
 
+  const indexUrl = new URL('./index.html', self.registration.scope).toString();
+
+  /* ページ本体はネットワーク優先。
+     こうしないと、更新しても既に開いたことのある端末で古い版が出続ける。
+     オフライン時はキャッシュに落ちるので、圏外でも起動する。 */
+  if (req.mode === 'navigate' || url.pathname.endsWith('.html')) {
+    e.respondWith((async () => {
+      try {
+        const res = await fetch(req);
+        if (res.ok) {
+          const cache = await caches.open(CACHE);
+          cache.put(indexUrl, res.clone());
+        }
+        return res;
+      } catch (err) {
+        const cached = await caches.match(req, {ignoreSearch: true})
+                    || await caches.match(indexUrl);
+        if (cached) return cached;
+        throw err;
+      }
+    })());
+    return;
+  }
+
+  /* 音源・アイコンなど中身が変わらないものはキャッシュ優先 */
   e.respondWith((async () => {
     const cached = await caches.match(req, {ignoreSearch: true});
     if (cached) return cached;
@@ -79,11 +104,6 @@ self.addEventListener('fetch', e => {
       }
       return res;
     } catch (err) {
-      // オフラインでナビゲーションに失敗したらトップを返す
-      if (req.mode === 'navigate') {
-        const fallback = await caches.match(new URL('./index.html', self.registration.scope).toString());
-        if (fallback) return fallback;
-      }
       throw err;
     }
   })());
