@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="両肺4分画に肺音を配置して聴診を練習・出題できるOSCE対策ツール">
+<meta name="description" content="肺音4分画・心音4領域に音を配置して聴診を練習・出題できるOSCE対策ツール">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#9b1b30" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#161214" media="(prefers-color-scheme: dark)">
@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="肺音聴診">
-<title>肺音聴診トレーナー</title>
+<meta name="apple-mobile-web-app-title" content="聴診">
+<title>聴診トレーナー</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -335,6 +335,47 @@ footer{
 </head>
 <body>
 
+<style>
+/* ============ 追加：キット切替 ============ */
+.kitSwitch{
+  display:flex; gap:4px; background:var(--sunk); border:1px solid var(--line);
+  padding:4px; border-radius:22px; margin-left:auto;
+}
+.kitBtn{
+  padding:6px 16px; border:0; background:transparent; color:var(--ink-2);
+  border-radius:18px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600;
+}
+.kitBtn:hover{color:var(--ink)}
+.kitBtn.active{background:var(--brand); color:var(--brand-ink); box-shadow:var(--shadow-sm)}
+
+/* ============ 心音：聴診点 ============ */
+.site{cursor:pointer}
+.site:hover .sdot{opacity:.85}
+.sdot{transition:fill .25s ease; stroke:#fff; stroke-width:2.5}
+.site.off{cursor:not-allowed}
+.site.off .sdot{fill:none; stroke:var(--figure-line); stroke-width:2; stroke-dasharray:4 3}
+.slabel{
+  font-size:10.5px; font-weight:700; fill:var(--ink); text-anchor:middle; pointer-events:none;
+}
+.svalue{font-size:9.5px; fill:var(--ink-2); text-anchor:middle; pointer-events:none}
+.skey{font-size:9px; fill:#fff; text-anchor:middle; pointer-events:none; font-weight:700;
+  font-family:"IBM Plex Mono",ui-monospace,monospace}
+.site.off .skey{fill:var(--ink-3)}
+.playing .sring{opacity:1; animation:pulseDot 1.6s ease-out infinite}
+.sring{opacity:0; fill:none; stroke:var(--brand); stroke-width:2.5}
+@keyframes pulseDot{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.9);opacity:0}}
+@media (prefers-reduced-motion:reduce){ .playing .sring{animation:none; opacity:.8} }
+
+.posTag{
+  display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:20px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-2);
+  margin-left:6px; white-space:nowrap;
+}
+td.k small{display:block; font-size:10.5px; color:var(--ink-3); font-weight:400; line-height:1.3}
+.srcNote{font-size:11px; color:var(--ink-3); line-height:1.7; margin-top:10px}
+.srcNote a{color:var(--ink-2)}
+</style>
+
 <div class="topbar">
   <div class="mark" aria-hidden="true">
     <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
@@ -344,8 +385,12 @@ footer{
       <path d="M12 7c1.6 0 2.6 1 3.4 2.2 1.2 1.8 2.6 4.2 2.6 7.2 0 2-.9 3.1-2.4 3.1-1.3 0-2.2-.8-2.5-2.1-.3-1.3-.4-3-.4-5"/>
     </svg>
   </div>
-  <h1>肺音聴診トレーナー</h1>
-  <span class="tag">両肺4分画シミュレーション<br>臨床OSCE対策</span>
+  <h1>聴診トレーナー</h1>
+  <span class="tag">肺音4分画・心音4領域<br>臨床OSCE対策</span>
+  <div class="kitSwitch" role="tablist" aria-label="聴診の種類">
+    <button class="kitBtn active" data-kit="lung"  role="tab">肺音</button>
+    <button class="kitBtn"        data-kit="heart" role="tab">心音</button>
+  </div>
   <button class="themeBtn" id="themeBtn">表示</button>
 </div>
 
@@ -354,15 +399,16 @@ footer{
   <!-- ========== LEFT : figure ========== -->
   <div class="figureWrap">
     <div class="panel">
-      <h2>前胸部 聴診部位</h2>
-      <svg id="chest" viewBox="0 34 400 362" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="前胸部の4分画">
+      <h2 id="figureTitle">前胸部 聴診部位</h2>
+
+      <!-- ---- 肺音の図 ---- -->
+      <svg id="chestLung" viewBox="0 34 400 362" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="前胸部の4分画">
         <defs>
           <path id="lungR" d="M172 108 C169 97 158 90 146 95 C127 103 111 128 105 160 C98 198 97 250 105 297 C110 325 128 338 148 333 C165 328 172 311 172 289 Z"/>
           <path id="lungL" d="M228 108 C231 97 242 90 254 95 C273 103 289 128 295 160 C302 198 303 250 295 297 C290 325 272 338 252 333 C240 330 233 319 232 303 C241 287 251 270 249 250 C247 231 235 223 228 207 Z"/>
           <clipPath id="clipR"><use href="#lungR"/></clipPath>
           <clipPath id="clipL"><use href="#lungL"/></clipPath>
         </defs>
-
         <path d="M200 44 C186 44 178 52 176 62 L150 70 C114 80 92 104 88 140 L80 300 C78 330 88 352 108 360 L292 360 C312 352 322 330 320 300 L312 140 C308 104 286 80 250 70 L224 62 C222 52 214 44 200 44 Z"
               fill="var(--figure-body)" stroke="var(--figure-line)" stroke-width="1.5"/>
         <path d="M200 58 L200 92 M200 92 L178 114 M200 92 L222 114"
@@ -370,27 +416,45 @@ footer{
         <path d="M148 84 C170 97 230 97 252 84" fill="none" stroke="var(--figure-line)" stroke-width="2" opacity=".55"/>
         <path d="M205 232 C222 236 240 254 242 278 C244 302 230 320 212 322 C196 324 186 312 184 296 L184 244 Z"
               fill="var(--figure-heart)" stroke="var(--figure-line)" stroke-width="1.2" opacity=".85" pointer-events="none"/>
-
-        <g id="zones"></g>
-
+        <g id="lungZones"></g>
         <use href="#lungR" fill="none" stroke="var(--figure-line)" stroke-width="1.6" pointer-events="none"/>
         <use href="#lungL" fill="none" stroke="var(--figure-line)" stroke-width="1.6" pointer-events="none"/>
         <line x1="99"  y1="214" x2="172" y2="214" stroke="var(--figure-line)" stroke-width="1.2" stroke-dasharray="4 3" pointer-events="none"/>
         <line x1="228" y1="214" x2="301" y2="214" stroke="var(--figure-line)" stroke-width="1.2" stroke-dasharray="4 3" pointer-events="none"/>
+        <text x="112" y="384" font-size="10.5" fill="var(--ink-3)">← 患者の右</text>
+        <text x="288" y="384" font-size="10.5" fill="var(--ink-3)" text-anchor="end">患者の左 →</text>
+      </svg>
 
+      <!-- ---- 心音の図 ---- -->
+      <svg id="chestHeart" class="hidden" viewBox="0 34 400 362" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="心音の聴診部位">
+        <path d="M200 44 C186 44 178 52 176 62 L150 70 C114 80 92 104 88 140 L80 300 C78 330 88 352 108 360 L292 360 C312 352 322 330 320 300 L312 140 C308 104 286 80 250 70 L224 62 C222 52 214 44 200 44 Z"
+              fill="var(--figure-body)" stroke="var(--figure-line)" stroke-width="1.5"/>
+        <!-- 胸骨 -->
+        <rect x="192" y="96" width="16" height="150" rx="7" fill="var(--figure-line)" opacity=".38"/>
+        <!-- 肋間の目安 -->
+        <g stroke="var(--figure-line)" stroke-width="1.4" opacity=".4" fill="none">
+          <path d="M192 128 C160 132 130 146 112 168"/><path d="M208 128 C240 132 270 146 288 168"/>
+          <path d="M192 162 C158 166 126 182 108 206"/><path d="M208 162 C242 166 274 182 292 206"/>
+          <path d="M192 196 C156 200 124 218 106 244"/><path d="M208 196 C244 200 276 218 294 244"/>
+          <path d="M192 230 C156 234 126 252 110 278"/><path d="M208 230 C244 234 274 252 290 278"/>
+        </g>
+        <!-- 心臓 -->
+        <path d="M196 150 C218 152 246 168 258 196 C272 228 268 268 246 288 C224 308 194 302 180 282 C168 264 170 240 176 220 L178 168 Z"
+              fill="var(--figure-heart)" stroke="var(--figure-line)" stroke-width="1.3" opacity=".9" pointer-events="none"/>
+        <g id="heartSites"></g>
         <text x="112" y="384" font-size="10.5" fill="var(--ink-3)">← 患者の右</text>
         <text x="288" y="384" font-size="10.5" fill="var(--ink-3)" text-anchor="end">患者の左 →</text>
       </svg>
 
       <div class="readout" id="readout">
         <span class="led"></span>
-        <span class="txt" id="readoutTxt">区画をクリックすると聴診できます</span>
+        <span class="txt" id="readoutTxt">聴診部位をクリックすると聴診できます</span>
         <button class="mini hidden" id="stopBtn">停止</button>
       </div>
 
       <div class="legendKeys">
-        <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> で各区画、<kbd>Esc</kbd> で停止。<br>
-        音はループ再生。鳴るのは常に1区画だけです（聴診器と同じ挙動）。
+        <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> で各部位、<kbd>Esc</kbd> で停止。<br>
+        音はループ再生。鳴るのは常に1部位だけです（聴診器と同じ挙動）。
       </div>
     </div>
   </div>
@@ -406,18 +470,18 @@ footer{
     <!-- ---------- practice ---------- -->
     <div id="practicePane">
       <div class="panel">
-        <h2>病態プリセット</h2>
+        <h2>想定疾患プリセット</h2>
         <div class="presets" id="presets"></div>
         <div class="note" id="presetNote"></div>
       </div>
 
       <div class="panel">
-        <h2>区画ごとの音を割り当てる</h2>
+        <h2 id="assignTitle">部位ごとの音を割り当てる</h2>
         <table class="zt" id="assignTable"></table>
       </div>
 
       <div class="panel">
-        <h2>肺音リファレンス</h2>
+        <h2 id="refTitle">リファレンス</h2>
         <div class="ref" id="refList"></div>
       </div>
     </div>
@@ -428,14 +492,14 @@ footer{
         <h2>出題</h2>
         <div class="row" style="margin-bottom:11px">
           <select id="quizType" style="flex:1; min-width:180px; width:auto">
-            <option value="scenario">病態シナリオから出題</option>
+            <option value="scenario">想定疾患から出題</option>
             <option value="random">ランダム配置（音のみ）</option>
             <option value="code">共有コードから出題</option>
           </select>
           <button class="btn" id="newQuizBtn">次の問題</button>
         </div>
         <div class="row hidden" id="codeInRow" style="margin-bottom:11px">
-          <input type="text" id="codeInField" class="codeField" placeholder="LUNG1-… を貼り付け" style="flex:1; min-width:180px; width:auto">
+          <input type="text" id="codeInField" class="codeField" placeholder="LUNG1-… / HART1-… を貼り付け" style="flex:1; min-width:180px; width:auto">
           <button class="btn" id="loadCodeBtn">読み込んで出題</button>
         </div>
         <div class="err" id="codeErr"></div>
@@ -444,10 +508,10 @@ footer{
 
       <div class="panel">
         <h2>解答</h2>
-        <p class="lede">各区画をクリックして聴診し、聴こえた音を選んでください。</p>
+        <p class="lede" id="quizLede">各部位をクリックして聴診し、聴こえた音を選んでください。</p>
         <table class="zt" id="answerTable"></table>
         <div id="dxWrap" style="margin-top:14px">
-          <div class="fieldLabel">想定される病態</div>
+          <div class="fieldLabel">想定される疾患</div>
           <select id="dxSelect"></select>
         </div>
         <div class="row" style="margin-top:15px">
@@ -463,12 +527,12 @@ footer{
       <div class="panel">
         <h2>問題を作る</h2>
         <p class="lede">
-          4区画に肺音を設定して共有コードを発行します。渡された人は「出題」→<b>共有コードから出題</b>に貼るだけで解答できます。設定中の音は左の胸部図で確認できます。
+          各部位に音を設定して共有コードを発行します。渡された人は「出題」→<b>共有コードから出題</b>に貼るだけで解答できます。設定中の音は左の図で確認できます。
         </p>
         <table class="zt" id="composeTable"></table>
 
         <div style="margin-top:14px">
-          <div class="fieldLabel">正解の病態（任意）</div>
+          <div class="fieldLabel">正解の疾患（任意）</div>
           <select id="composeDx"></select>
         </div>
 
@@ -497,7 +561,7 @@ footer{
           <li>相手は「出題」→「共有コードから出題」に貼って解答・採点</li>
         </ol>
         <div class="note">
-          URLの末尾に <b>#q=コード</b> を付けて送れば、開いた瞬間にその問題が始まります。コードに入るのは<b>配置と正解の病態だけ</b>で、復号できる形式なのでカンニング防止にはなりません。
+          URLの末尾に <b>#q=コード</b> を付けて送れば、開いた瞬間にその問題が始まります。コードには<b>肺音か心音かの区別</b>も入っているので、受け取った側は自動で切り替わります。
         </div>
       </div>
     </div>
@@ -506,42 +570,46 @@ footer{
 </div>
 
 <footer>
-  肺音の音源は教育用に公開されている録音を使用しています。学習目的での利用を想定したツールです。
+  <div><b>肺音</b>：教育目的で公開されている録音を使用。</div>
+  <div class="srcNote">
+    <b>心音</b>：Heart Sound &amp; Murmur Library — Richard D. Judge, M.D., Rajesh Mangrulkar, M.D.／
+    University of Michigan Medical School.
+    <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>
+    に基づき、ループ再生用に約12秒へトリミングのうえ収録。加工後の音源も同ライセンスで提供します。
+  </div>
 </footer>
 
 <script>
-/* ===================== 音源カタログ ===================== */
-const SOUNDS = {
-  normal:      {label:'正常呼吸音',                short:'正常',       code:'n',  file:'sounds/normal.mp4',          gain:1.00, color:'#3d8f6b',
+/* ==================================================================
+   聴診トレーナー — 肺音／心音
+   ================================================================== */
+
+/* ===================== 肺音 ===================== */
+const LUNG_SOUNDS = {
+  normal:      {label:'正常呼吸音',                short:'正常',       code:'n',  file:'sounds/lung/normal.mp4',          gain:1.00, color:'#3d8f6b',
                 desc:'吸気：呼気 ≒ 3:1。呼気はごく短く、副雑音を伴わない。'},
-  diminished:  {label:'呼吸音減弱',                short:'減弱',       code:'dm', file:'sounds/normal.mp4',          gain:0.15, color:'#8a8f98',
+  diminished:  {label:'呼吸音減弱',                short:'減弱',       code:'dm', file:'sounds/lung/normal.mp4',          gain:0.15, color:'#8a8f98',
                 desc:'肺気腫・胸水・無気肺・肥満など。打診音と併せて評価する。'},
-  absent:      {label:'呼吸音消失',                short:'消失',       code:'ab', file:null,                         gain:0,    color:'#55505a',
+  absent:      {label:'呼吸音消失',                short:'消失',       code:'ab', file:null,                              gain:0,    color:'#55505a',
                 desc:'気胸・大量胸水・完全無気肺。打診で鼓音なら気胸、濁音なら胸水。'},
-  wheeze:      {label:'wheezes（笛音）',           short:'笛音',       code:'wz', file:'sounds/wheeze.mp4',          gain:1.00, color:'#c2410c',
+  wheeze:      {label:'wheezes（笛音）',           short:'笛音',       code:'wz', file:'sounds/lung/wheeze.mp4',          gain:1.00, color:'#c2410c',
                 desc:'高音性連続性ラ音。呼気優位。末梢気道の狭窄（喘息・COPD）。'},
-  wheeze_copd: {label:'wheezes（COPD・呼気延長）', short:'笛音(COPD)', code:'wc', file:'sounds/wheeze_copd.mp3',     gain:1.00, color:'#b45309',
+  wheeze_copd: {label:'wheezes（COPD・呼気延長）', short:'笛音(COPD)', code:'wc', file:'sounds/lung/wheeze_copd.mp3',     gain:1.00, color:'#b45309',
                 desc:'呼気が著明に延長し、その全相にわたって笛音が続く。', equiv:'wheeze'},
-  rhonchi:     {label:'rhonchi（いびき音）',       short:'いびき音',   code:'rh', file:'sounds/rhonchi.mp4',         gain:1.00, color:'#7c3aed',
+  rhonchi:     {label:'rhonchi（いびき音）',       short:'いびき音',   code:'rh', file:'sounds/lung/rhonchi.mp4',         gain:1.00, color:'#7c3aed',
                 desc:'低音性連続性ラ音。太い気道の分泌物・狭窄。咳で変化する。'},
-  fine:        {label:'fine crackles（捻髪音）',   short:'捻髪音',     code:'fc', file:'sounds/fine_crackles.mp4',   gain:1.00, color:'#2563eb',
+  fine:        {label:'fine crackles（捻髪音）',   short:'捻髪音',     code:'fc', file:'sounds/lung/fine_crackles.mp4',   gain:1.00, color:'#2563eb',
                 desc:'吸気終末の細かい断続性ラ音。間質性肺炎（Velcro ラ音）。'},
-  coarse:      {label:'coarse crackles（水泡音）', short:'水泡音',     code:'cc', file:'sounds/coarse_crackles.mp4', gain:1.00, color:'#a21caf',
+  coarse:      {label:'coarse crackles（水泡音）', short:'水泡音',     code:'cc', file:'sounds/lung/coarse_crackles.mp4', gain:1.00, color:'#a21caf',
                 desc:'粗い湿性の断続性ラ音。肺炎・肺水腫・気管支拡張症。'},
 };
-/* 解答選択肢：wheeze_copd は wheezes に統合して採点する */
-const CHOICES = ['normal','diminished','absent','wheeze','rhonchi','fine','coarse'];
-
-/* ===================== 区画 ===================== */
-const ZONES = [
+const LUNG_ZONES = [
   {id:'RU', key:'1', name:'右上肺野', clip:'clipR', box:[94,86,82,128],  cx:136, cy:152},
   {id:'RL', key:'2', name:'右下肺野', clip:'clipR', box:[94,214,82,130], cx:136, cy:270},
   {id:'LU', key:'3', name:'左上肺野', clip:'clipL', box:[224,86,82,128], cx:264, cy:152},
   {id:'LL', key:'4', name:'左下肺野', clip:'clipL', box:[224,214,82,130],cx:270, cy:270},
 ];
-
-/* ===================== 病態シナリオ ===================== */
-const SCENARIOS = [
+const LUNG_SCENARIOS = [
   {id:'normal', name:'正常', map:{RU:'normal',RL:'normal',LU:'normal',LL:'normal'},
    note:'全肺野で肺胞呼吸音が清明に聴取される。'},
   {id:'asthma', name:'気管支喘息発作', map:{RU:'wheeze',RL:'wheeze',LU:'wheeze',LL:'wheeze'},
@@ -566,18 +634,163 @@ const SCENARIOS = [
    note:'患側の呼吸音減弱、打診濁音、胸郭運動の低下。胸水と異なり縦隔は<b>患側へ</b>偏位する。'},
 ];
 
+/* ===================== 心音 =====================
+   録音は聴診部位ごとに用意されているため、部位ごとに選べる音が異なる。
+   H = 心尖部（僧帽弁領域）、A = 大動脈弁領域、P = 肺動脈弁領域。      */
+const HS = 'sounds/heart/';
+const HEART_SOUNDS = {
+  /* --- 心尖部・僧帽弁領域 --- */
+  m_normal: {area:'M', label:'正常 S1・S2',                 short:'正常',        code:'mn', pos:'仰臥位・ベル型',
+             file:HS+'01_apex_normal_s1_s2_supine_bell.m4a',            color:'#3d8f6b',
+             desc:'S1 が S2 より大きく、収縮期・拡張期とも雑音を伴わない。'},
+  m_splits1:{area:'M', label:'S1分裂',                      short:'S1分裂',      code:'ms', pos:'仰臥位・ベル型',
+             file:HS+'02_apex_split_s1_supine_bell.m4a',                color:'#0f766e',
+             desc:'僧帽弁と三尖弁の閉鎖がずれる。正常変異または右脚ブロック。'},
+  m_s4:     {area:'M', label:'S4ギャロップ',                short:'S4',          code:'m4', pos:'左側臥位・ベル型',
+             file:HS+'03_apex_s4_lld_bell.m4a',                         color:'#b45309',
+             desc:'S1 の直前。心房収縮による低調音。左室コンプライアンス低下（高血圧・AS・肥大型心筋症）。'},
+  m_s3:     {area:'M', label:'S3ギャロップ',                short:'S3',          code:'m3', pos:'左側臥位・ベル型',
+             file:HS+'05_apex_s3_lld_bell.m4a',                         color:'#c2410c',
+             desc:'S2 の直後。急速充満期の低調音。容量負荷・心不全。40歳以上では病的。'},
+  m_click:  {area:'M', label:'収縮中期クリック',            short:'クリック',    code:'mc', pos:'仰臥位・ベル型',
+             file:HS+'04_apex_mid_sys_click_supine_bell.m4a',           color:'#7c3aed',
+             desc:'収縮中期の鋭い高調音。僧帽弁逸脱。立位で早期化する。'},
+  m_early:  {area:'M', label:'収縮早期雑音',                short:'収縮早期',    code:'me', pos:'仰臥位・ベル型',
+             file:HS+'06_apex_early_sys_mur_supine_bell.m4a',           color:'#9333ea',
+             desc:'S1 直後から始まり収縮中期で消える。小さいVSD・急性MR。'},
+  m_mid:    {area:'M', label:'収縮中期雑音',                short:'収縮中期',    code:'mm', pos:'仰臥位・ベル型',
+             file:HS+'07_apex_mid_sys_mur_supine_bell.m4a',             color:'#a21caf',
+             desc:'収縮中期に山をもつ駆出性（ダイヤモンド型）雑音。'},
+  m_late:   {area:'M', label:'収縮後期雑音',                short:'収縮後期',    code:'ml', pos:'仰臥位・ベル型',
+             file:HS+'08_apex_late_sys_mur_supine_bell.m4a',            color:'#be185d',
+             desc:'収縮後期から S2 まで。僧帽弁逸脱に伴う MR。'},
+  m_holo:   {area:'M', label:'全収縮期雑音',                short:'全収縮期',    code:'mh', pos:'仰臥位・ベル型',
+             file:HS+'09_apex_holo_sys_mur_supine_bell.m4a',            color:'#dc2626',
+             desc:'S1 から S2 まで途切れず続く。僧帽弁閉鎖不全（MR）・VSD・TR。'},
+  m_click_late:{area:'M', label:'収縮期クリック＋収縮後期雑音', short:'クリック+後期', code:'mk', pos:'左側臥位・ベル型',
+             file:HS+'10_apex_sys_click__late_sys_mur_lld_bell.m4a',    color:'#8b5cf6',
+             desc:'僧帽弁逸脱の典型。クリックに続いて収縮後期雑音。'},
+  m_s4_mid: {area:'M', label:'S4＋収縮中期雑音',            short:'S4+収縮中期', code:'m5', pos:'左側臥位・ベル型',
+             file:HS+'11_apex_s4__mid_sys_mur_lld_bell.m4a',            color:'#d97706',
+             desc:'大動脈弁狭窄で心尖部に伝わる所見。S4 は左室肥大を示唆。'},
+  m_s3_holo:{area:'M', label:'S3＋全収縮期雑音',            short:'S3+全収縮期', code:'m6', pos:'左側臥位・ベル型',
+             file:HS+'12_apex_s3__holo_sys_mur_lld_bell.m4a',           color:'#ea580c',
+             desc:'重症 MR。容量負荷による S3 を伴う。心不全徴候を確認する。'},
+  m_os:     {area:'M', label:'開放音（OS）＋拡張期雑音',    short:'OS+拡張期',   code:'mo', pos:'左側臥位・ベル型',
+             file:HS+'13_apex_os__dias_mur_lld_bell.m4a',               color:'#1d4ed8',
+             desc:'僧帽弁狭窄（MS）。S2 後の開放音に続く拡張期ランブル。左側臥位・ベル型で聴取。'},
+
+  /* --- 大動脈弁領域 --- */
+  a_normal: {area:'A', label:'正常 S1・S2',                 short:'正常',        code:'an', pos:'坐位・ベル型',
+             file:HS+'14_aortic_normal_s1_s2_sitting_bell.m4a',         color:'#3d8f6b',
+             desc:'この領域では S2 が S1 より大きい。雑音を伴わない。'},
+  a_as:     {area:'A', label:'収縮期雑音＋S2消失',          short:'収縮期+S2消失',code:'aa', pos:'坐位・ベル型',
+             file:HS+'15_aortic_sys_mur__absent_s2_sitting_bell.m4a',   color:'#dc2626',
+             desc:'重症大動脈弁狭窄（AS）。A2 が消失し、雑音のピークが遅れる。頸動脈への放散と pulsus parvus et tardus。'},
+  a_ar:     {area:'A', label:'拡張早期雑音',                short:'拡張早期',    code:'ar', pos:'坐位・ベル型',
+             file:HS+'16_aortic_early_dias_mur_sitting_bell.m4a',       color:'#1d4ed8',
+             desc:'大動脈弁閉鎖不全（AR）。S2 直後から減衰する高調な灌水様雑音。坐位前傾・呼気止めで増強。'},
+  a_asar:   {area:'A', label:'収縮期＋拡張期雑音',          short:'収縮期+拡張期',code:'ax', pos:'坐位・ベル型',
+             file:HS+'17_aortic_sys__dias_mur_sitting_bell.m4a',        color:'#7c3aed',
+             desc:'AS と AR の合併（to-and-fro murmur）。収縮期と拡張期の両方に雑音。'},
+
+  /* --- 肺動脈弁領域 --- */
+  p_phys:   {area:'P', label:'S2生理的分裂',                short:'生理的分裂',  code:'pp', pos:'仰臥位・膜型',
+             file:HS+'20_pulm_spilt_s2_transient_supine_diaph.m4a',     color:'#3d8f6b',
+             desc:'吸気時にのみ分裂し呼気で単一化する。正常所見。'},
+  p_fixed:  {area:'P', label:'S2固定性分裂',                short:'固定性分裂',  code:'pf', pos:'仰臥位・膜型',
+             file:HS+'19_pulm_spilt_s2_persistent_supine_diaph.m4a',    color:'#0891b2',
+             desc:'呼吸によらず分裂が続く。<b>心房中隔欠損（ASD）</b>の特徴的所見。'},
+  p_eject:  {area:'P', label:'駆出性収縮期雑音＋生理的分裂',short:'駆出性+分裂', code:'pe', pos:'仰臥位・膜型',
+             file:HS+'21_pulm_eject_sys_mur__trans_split_s2_supine_diaph.m4a', color:'#a21caf',
+             desc:'肺動脈血流の増加または軽度の肺動脈弁狭窄。無害性雑音のことも多い。'},
+  p_split_eject:{area:'P', label:'S2分裂＋駆出性収縮期雑音',short:'分裂+駆出性', code:'px', pos:'仰臥位・膜型',
+             file:HS+'22_pulm_split_s2__eject_sys_mur_supine_diaph.m4a',color:'#c2410c',
+             desc:'肺血流増加を伴う病態（ASD など）。分裂と雑音が併存。'},
+  p_ps:     {area:'P', label:'駆出性雑音＋単一S2＋駆出クリック', short:'PS所見', code:'ps', pos:'仰臥位・膜型',
+             file:HS+'23_pulm_eject_sys_mur__single_s2__eject_click_supine_diaph.m4a', color:'#dc2626',
+             desc:'肺動脈弁狭窄（PS）。駆出クリックに続く収縮期雑音、P2 減弱により S2 は単一。'},
+};
+const HEART_ZONES = [
+  {id:'A', key:'1', name:'大動脈弁領域', sub:'第2肋間 胸骨右縁', x:172, y:146, lx:118, ly:120},
+  {id:'P', key:'2', name:'肺動脈弁領域', sub:'第2肋間 胸骨左縁', x:228, y:146, lx:288, ly:120},
+  {id:'T', key:'3', name:'三尖弁領域',   sub:'第4肋間 胸骨左縁', x:218, y:212, lx:300, ly:196, off:true},
+  {id:'M', key:'4', name:'僧帽弁領域',   sub:'第5肋間 鎖骨中線（心尖部）', x:252, y:256, lx:300, ly:300},
+];
+const HEART_SCENARIOS = [
+  {id:'h_normal', name:'正常', map:{A:'a_normal',P:'p_phys',M:'m_normal'},
+   note:'S1・S2 が明瞭で雑音を伴わない。S2 は吸気時のみ分裂する（生理的分裂）。'},
+  {id:'h_mr', name:'僧帽弁閉鎖不全症（MR）', map:{A:'a_normal',P:'p_phys',M:'m_holo'},
+   note:'心尖部に<b>全収縮期雑音</b>、左腋窩へ放散。S1 減弱を伴う。重症例では S3 が出現する。'},
+  {id:'h_mr_severe', name:'重症MR・心不全', map:{A:'a_normal',P:'p_phys',M:'m_s3_holo'},
+   note:'全収縮期雑音に<b>S3</b> が加わる。容量負荷の指標であり、心不全徴候（起坐呼吸・肺うっ血）を併せて評価する。'},
+  {id:'h_ms', name:'僧帽弁狭窄症（MS）', map:{A:'a_normal',P:'p_phys',M:'m_os'},
+   note:'S2 に続く<b>開放音（opening snap）</b>と拡張期ランブル。<b>左側臥位・ベル型</b>でないと聴き逃す。リウマチ性が多く心房細動を合併。'},
+  {id:'h_mvp', name:'僧帽弁逸脱症（MVP）', map:{A:'a_normal',P:'p_phys',M:'m_click_late'},
+   note:'<b>収縮中期クリック</b>に続く収縮後期雑音。立位・Valsalva で前方移動（早期化）し、しゃがむと遅くなる。'},
+  {id:'h_as', name:'大動脈弁狭窄症（AS）', map:{A:'a_as',P:'p_phys',M:'m_s4_mid'},
+   note:'大動脈弁領域の収縮期駆出性雑音で<b>A2 消失</b>。頸動脈へ放散し、心尖部では S4 を伴う。失神・狭心痛・心不全は予後不良のサイン。'},
+  {id:'h_ar', name:'大動脈弁閉鎖不全症（AR）', map:{A:'a_ar',P:'p_phys',M:'m_normal'},
+   note:'S2 直後からの<b>拡張早期灌水様雑音</b>。坐位前傾・呼気止めで増強。脈圧増大、Corrigan 脈などの末梢徴候を伴う。'},
+  {id:'h_asar', name:'AS＋AR（連合弁膜症）', map:{A:'a_asar',P:'p_phys',M:'m_s4_mid'},
+   note:'収縮期と拡張期の両方に雑音（<b>to-and-fro murmur</b>）。二尖弁やリウマチ性で生じる。'},
+  {id:'h_asd', name:'心房中隔欠損症（ASD）', map:{A:'a_normal',P:'p_fixed',M:'m_normal'},
+   note:'<b>S2 固定性分裂</b>が決め手。呼吸によらず分裂が持続する。肺血流増加による駆出性雑音を伴う。'},
+  {id:'h_asd_flow', name:'ASD（肺血流増加が顕著）', map:{A:'a_normal',P:'p_split_eject',M:'m_normal'},
+   note:'固定性分裂に加え、肺動脈弁領域に駆出性収縮期雑音。相対的肺動脈弁狭窄による。'},
+  {id:'h_ps', name:'肺動脈弁狭窄症（PS）', map:{A:'a_normal',P:'p_ps',M:'m_normal'},
+   note:'<b>駆出クリック</b>に続く収縮期雑音、P2 減弱で S2 は単一。吸気でクリックが減弱するのが特徴。'},
+  {id:'h_s3', name:'S3ギャロップ（心不全）', map:{A:'a_normal',P:'p_phys',M:'m_s3'},
+   note:'S2 直後の低調な III 音。<b>左側臥位・ベル型</b>で心尖部に聴取。40歳以上では容量負荷・心不全を示唆。'},
+  {id:'h_s4', name:'S4ギャロップ（高血圧性心疾患）', map:{A:'a_normal',P:'p_phys',M:'m_s4'},
+   note:'S1 直前の IV 音。心室コンプライアンス低下を反映。<b>心房細動では消失</b>する（心房収縮が失われるため）。'},
+  {id:'h_mvp_click', name:'収縮中期クリックのみ', map:{A:'a_normal',P:'p_phys',M:'m_click'},
+   note:'雑音を伴わない僧帽弁逸脱。逆流がまだ軽微な段階。'},
+  {id:'h_vsd', name:'心室中隔欠損（小欠損）', map:{A:'a_normal',P:'p_phys',M:'m_early'},
+   note:'収縮早期雑音。小さい欠損ほど高調で短い雑音になる（maladie de Roger）。'},
+];
+
+/* ===================== キット定義 ===================== */
+const KITS = {
+  lung: {
+    label:'肺音', prefix:'LUNG1',
+    sounds:LUNG_SOUNDS, zones:LUNG_ZONES, scenarios:LUNG_SCENARIOS,
+    figure:'chestLung', figureTitle:'前胸部 聴診部位',
+    assignTitle:'区画ごとの音を割り当てる', refTitle:'肺音リファレンス',
+    quizLede:'各区画をクリックして聴診し、聴こえた音を選んでください。',
+    /* 解答の選択肢。wheeze_copd は wheezes に統合して採点する */
+    choices: ()=> ['normal','diminished','absent','wheeze','rhonchi','fine','coarse'],
+    defaults:{RU:'normal',RL:'normal',LU:'normal',LL:'normal'},
+  },
+  heart: {
+    label:'心音', prefix:'HART1',
+    sounds:HEART_SOUNDS, zones:HEART_ZONES, scenarios:HEART_SCENARIOS,
+    figure:'chestHeart', figureTitle:'心音 聴診部位',
+    assignTitle:'部位ごとの音を割り当てる', refTitle:'心音リファレンス',
+    quizLede:'各部位をクリックして聴診し、聴こえた音を選んでください。部位ごとに選択肢が異なります。',
+    /* 録音が部位別なので、選択肢もその部位のものだけ */
+    choices: (zoneId)=> Object.keys(HEART_SOUNDS).filter(k=>HEART_SOUNDS[k].area===zoneId),
+    defaults:{A:'a_normal',P:'p_phys',M:'m_normal'},
+  },
+};
+
 /* ===================== 状態 ===================== */
+let kit  = 'lung';
 let mode = 'practice';
-let assign  = {RU:'normal',RL:'normal',LU:'normal',LL:'normal'};
-let compose = {RU:'normal',RL:'normal',LU:'normal',LL:'normal'};
-let quiz = null;
-let pendingCode = null;
-let score = {correct:0, total:0};
+let assign  = {}, compose = {};
+let quiz = null, pendingCode = null;
+let score = {lung:{correct:0,total:0}, heart:{correct:0,total:0}};
+
+const K       = ()=> KITS[kit];
+const SOUNDS  = ()=> K().sounds;
+const ZONES   = ()=> K().zones;
+const LIVE    = ()=> K().zones.filter(z=>!z.off);   // 音源のある部位だけ
+const SCEN    = ()=> K().scenarios;
 
 function activeMap(){
   if(mode === 'quiz')    return quiz ? quiz.map : null;
-  if(mode === 'compose') return compose;
-  return assign;
+  if(mode === 'compose') return compose[kit];
+  return assign[kit];
 }
 
 /* ===================== 音声 ===================== */
@@ -585,7 +798,7 @@ const pool = {};
 let current = null;
 
 function audioFor(sid){
-  const s = SOUNDS[sid];
+  const s = SOUNDS()[sid];
   if(!s || !s.file) return null;
   if(!pool[s.file]){
     const a = new Audio(s.file);
@@ -602,124 +815,198 @@ function setReadout(html, on){
 function stopAll(){
   Object.values(pool).forEach(a=>{ a.pause(); a.currentTime = 0; });
   current = null;
-  document.querySelectorAll('.zone').forEach(z=>z.classList.remove('playing'));
-  setReadout('区画をクリックすると聴診できます', false);
+  document.querySelectorAll('.zone, .site').forEach(z=>z.classList.remove('playing'));
+  setReadout('聴診部位をクリックすると聴診できます', false);
 }
 function playZone(zid){
+  const z = ZONES().find(z=>z.id===zid);
+  if(!z) return;
+  if(z.off){
+    stopAll();
+    setReadout('<b>'+z.name+'</b> — この部位の音源は未収録です', false);
+    return;
+  }
   const map = activeMap();
   if(!map){ stopAll(); setReadout('「次の問題」を押すと出題されます', false); return; }
   if(current === zid){ stopAll(); return; }
   stopAll();
 
-  const sid = map[zid], s = SOUNDS[sid], z = ZONES.find(z=>z.id===zid);
+  const sid = map[zid], s = SOUNDS()[sid];
   const masked = (mode==='quiz' && quiz && !quiz.graded);
   current = zid;
-  document.getElementById('zone-'+zid).classList.add('playing');
+  const el = document.getElementById('zone-'+zid);
+  if(el) el.classList.add('playing');
 
+  const posTag = (s.pos && !masked) ? ' <span class="posTag">'+s.pos+'</span>' : '';
   const a = audioFor(sid);
   if(!a){
     setReadout('<b>'+z.name+'</b> — ' + (masked ? '音が聴こえません' : '呼吸音消失（無音）'), true);
     return;
   }
-  setReadout('<b>'+z.name+'</b> — ' + (masked ? '聴取中' : s.label), true);
-  a.volume = s.gain; a.currentTime = 0;
+  setReadout('<b>'+z.name+'</b> — ' + (masked ? '聴取中' : s.label) + posTag, true);
+  a.volume = s.gain !== undefined ? s.gain : 1;
+  a.currentTime = 0;
   a.play().catch(()=> setReadout('音声を再生できませんでした', false));
 }
 function preview(sid){
   stopAll();
-  const s = SOUNDS[sid], a = audioFor(sid);
-  setReadout('試聴 — <b>'+s.label+'</b>' + (a ? '' : '（無音）'), true);
-  if(a){ a.volume = s.gain; a.currentTime = 0; a.play().catch(()=>{}); }
+  const s = SOUNDS()[sid], a = audioFor(sid);
+  const posTag = s.pos ? ' <span class="posTag">'+s.pos+'</span>' : '';
+  setReadout('試聴 — <b>'+s.label+'</b>' + posTag + (a ? '' : '（無音）'), true);
+  if(a){ a.volume = s.gain !== undefined ? s.gain : 1; a.currentTime = 0; a.play().catch(()=>{}); }
 }
 
-/* ===================== 胸部図 ===================== */
-function buildZones(){
-  const g = document.getElementById('zones');
-  g.innerHTML = ZONES.map(z=>{
+/* ===================== 図 ===================== */
+function buildLungZones(){
+  const g = document.getElementById('lungZones');
+  g.innerHTML = LUNG_ZONES.map(z=>{
     const [x,y,w,h] = z.box;
-    return `<g class="zone" id="zone-${z.id}" data-zone="${z.id}" clip-path="url(#${z.clip})"
+    return `<g class="zone" data-zone="${z.id}" clip-path="url(#${z.clip})"
                tabindex="0" role="button" aria-label="${z.name}を聴診">
       <rect class="zfill" x="${x}" y="${y}" width="${w}" height="${h}" fill="#3d8f6b"/>
       <rect class="ring" x="${x+3}" y="${y+3}" width="${w-6}" height="${h-6}" rx="7"
             style="transform-origin:${z.cx}px ${z.cy}px"/>
     </g>`;
-  }).join('') + ZONES.map(z=>`
+  }).join('') + LUNG_ZONES.map(z=>`
       <text class="zkey"   x="${z.cx}" y="${z.cy-20}">${z.key}</text>
       <text class="zlabel" x="${z.cx}" y="${z.cy-2}">${z.name}</text>
-      <text class="zname"  x="${z.cx}" y="${z.cy+15}" id="val-${z.id}">正常</text>
+      <text class="zname"  x="${z.cx}" y="${z.cy+15}" id="lval-${z.id}">正常</text>
   `).join('');
-  g.querySelectorAll('.zone').forEach(el=>{
-    el.addEventListener('click', ()=>playZone(el.dataset.zone));
-    el.addEventListener('keydown', e=>{
-      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); playZone(el.dataset.zone); }
-    });
-  });
+}
+function buildHeartSites(){
+  const g = document.getElementById('heartSites');
+  g.innerHTML = HEART_ZONES.map(z=>`
+    <g class="site${z.off?' off':''}" data-zone="${z.id}"
+       ${z.off?'':'tabindex="0" role="button"'} aria-label="${z.name}${z.off?'（未収録）':'を聴診'}">
+      <circle class="sring" cx="${z.x}" cy="${z.y}" r="17" style="transform-origin:${z.x}px ${z.y}px"/>
+      <circle class="sdot" cx="${z.x}" cy="${z.y}" r="17" fill="${z.off?'none':'#3d8f6b'}"/>
+      <text class="skey" x="${z.x}" y="${z.y+4}">${z.key}</text>
+    </g>`).join('') + HEART_ZONES.map(z=>{
+    const anchor = z.lx < 200 ? 'end' : 'start';
+    const ex = z.lx < 200 ? z.x-20 : z.x+20;
+    return `<line x1="${ex}" y1="${z.y}" x2="${z.lx}" y2="${z.ly+4}"
+                  stroke="var(--figure-line)" stroke-width="1" opacity=".6"/>
+      <text class="slabel" x="${z.lx}" y="${z.ly}" style="text-anchor:${anchor}">${z.name}</text>
+      <text class="svalue" x="${z.lx}" y="${z.ly+13}" style="text-anchor:${anchor}" id="hval-${z.id}">${z.off?'未収録':'正常'}</text>`;
+  }).join('');
 }
 function paintZones(){
-  const map = activeMap() || {RU:'normal',RL:'normal',LU:'normal',LL:'normal'};
+  const map = activeMap() || K().defaults;
   const masked = (mode==='quiz' && quiz && !quiz.graded);
-  ZONES.forEach(z=>{
-    const s = SOUNDS[map[z.id]];
-    document.querySelector('#zone-'+z.id+' .zfill').setAttribute('fill', masked ? '#8d858f' : s.color);
-    document.getElementById('val-'+z.id).textContent = masked ? '？' : s.short;
-  });
+  if(kit === 'lung'){
+    LUNG_ZONES.forEach(z=>{
+      const s = LUNG_SOUNDS[map[z.id]] || LUNG_SOUNDS.normal;
+      document.querySelector(`[data-zone="${z.id}"] .zfill`).setAttribute('fill', masked ? '#8d858f' : s.color);
+      document.getElementById('lval-'+z.id).textContent = masked ? '？' : s.short;
+    });
+  }else{
+    HEART_ZONES.forEach(z=>{
+      const el = document.querySelector(`[data-zone="${z.id}"] .sdot`);
+      const lab = document.getElementById('hval-'+z.id);
+      if(z.off){ el.setAttribute('fill','none'); lab.textContent = '未収録'; return; }
+      const s = HEART_SOUNDS[map[z.id]] || HEART_SOUNDS.m_normal;
+      el.setAttribute('fill', masked ? '#8d858f' : s.color);
+      lab.textContent = masked ? '？' : s.short;
+    });
+  }
 }
 
-/* ===================== 練習 ===================== */
-function zoneRow(z, attr, extra){
-  return `<tr>
-    <td class="k"><span class="num">${z.key}</span>${z.name}</td>
-    <td><select ${attr}="${z.id}">${Object.keys(SOUNDS).map(k=>
-        `<option value="${k}">${SOUNDS[k].label}</option>`).join('')}</select></td>
-    <td class="act"><button class="mini" data-listen="${z.id}">聴く</button></td>
-    ${extra||''}
-  </tr>`;
+/* ===================== 表の組み立て ===================== */
+function optionsFor(zoneId, all){
+  const keys = all ? Object.keys(SOUNDS()).filter(k=> kit==='lung' || SOUNDS()[k].area===zoneId)
+                   : K().choices(zoneId);
+  return keys.map(k=>`<option value="${k}">${SOUNDS()[k].label}</option>`).join('');
 }
-function buildPresets(){
-  document.getElementById('presets').innerHTML =
-    SCENARIOS.map(s=>`<button class="preset" data-sc="${s.id}">${s.name}</button>`).join('');
-  document.querySelectorAll('.preset').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      const sc = SCENARIOS.find(s=>s.id===b.dataset.sc);
-      assign = Object.assign({}, sc.map);
-      document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      document.getElementById('presetNote').innerHTML = '<b>'+sc.name+'</b>　'+sc.note;
-      stopAll(); paintZones(); syncTable('[data-az]', assign);
-    });
-  });
+function zoneRows(attr, withVerdict, blank){
+  return LIVE().map(z=>`
+    <tr>
+      <td class="k"><span class="num">${z.key}</span>${z.name}${z.sub?`<small>${z.sub}</small>`:''}</td>
+      <td><select ${attr}="${z.id}"${blank?' disabled':''}>
+        ${blank?'<option value="">— 選択 —</option>':''}${optionsFor(z.id, !blank)}
+      </select></td>
+      <td class="act"><button class="mini" data-listen="${z.id}">聴く</button></td>
+      ${withVerdict?`<td class="vd"><span class="verdict" id="vd-${z.id}"></span></td>`:''}
+    </tr>`).join('');
 }
-function buildAssignTable(){
-  document.getElementById('assignTable').innerHTML = ZONES.map(z=>zoneRow(z,'data-az')).join('');
+function buildTables(){
+  document.getElementById('assignTable').innerHTML  = zoneRows('data-az', false, false);
+  document.getElementById('composeTable').innerHTML = zoneRows('data-cz', false, false);
+  document.getElementById('answerTable').innerHTML  = zoneRows('data-ans', true, true);
+
   document.querySelectorAll('[data-az]').forEach(sel=>{
     sel.addEventListener('change', ()=>{
-      assign[sel.dataset.az] = sel.value;
+      assign[kit][sel.dataset.az] = sel.value;
       document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
       document.getElementById('presetNote').innerHTML =
         '<b>カスタム配置</b>　自分で組み合わせた所見です。プリセットを押すと戻せます。';
       stopAll(); paintZones();
     });
   });
+  document.querySelectorAll('[data-cz]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      compose[kit][sel.dataset.cz] = sel.value;
+      document.getElementById('codeOut').classList.add('hidden');
+      stopAll(); paintZones();
+    });
+  });
+  document.querySelectorAll('[data-ans]').forEach(s=> s.addEventListener('change', checkReady));
+
+  const dxOpts = '<option value="">— 選択 —</option>' +
+    SCEN().map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('dxSelect').innerHTML = dxOpts;
+  document.getElementById('composeDx').innerHTML =
+    '<option value="">— 指定しない —</option>' +
+    SCEN().map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
 }
 function syncTable(sel, map){
-  document.querySelectorAll(sel).forEach(s=>{ s.value = map[s.dataset.az || s.dataset.cz]; });
+  document.querySelectorAll(sel).forEach(s=>{
+    const id = s.dataset.az || s.dataset.cz;
+    if(map[id]) s.value = map[id];
+  });
+}
+function buildPresets(){
+  document.getElementById('presets').innerHTML =
+    SCEN().map(s=>`<button class="preset" data-sc="${s.id}">${s.name}</button>`).join('');
+  document.querySelectorAll('.preset').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const sc = SCEN().find(s=>s.id===b.dataset.sc);
+      assign[kit] = Object.assign({}, sc.map);
+      document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      document.getElementById('presetNote').innerHTML = '<b>'+sc.name+'</b>　'+sc.note;
+      stopAll(); paintZones(); syncTable('[data-az]', assign[kit]);
+    });
+  });
+  document.querySelector('.preset').classList.add('active');
+  document.getElementById('presetNote').innerHTML = '<b>'+SCEN()[0].name+'</b>　'+SCEN()[0].note;
 }
 function buildRef(){
-  document.getElementById('refList').innerHTML = Object.keys(SOUNDS).map(k=>{
-    const s = SOUNDS[k];
-    return `<div class="refrow">
-      <div class="stripe" style="background:${s.color}"></div>
-      <div><div class="nm">${s.label}</div><div class="desc">${s.desc}</div></div>
-      <button class="mini" data-prev="${k}">試聴</button>
-    </div>`;
-  }).join('');
+  const groups = kit==='lung'
+    ? [{t:null, keys:Object.keys(LUNG_SOUNDS)}]
+    : [{t:'大動脈弁領域', keys:Object.keys(HEART_SOUNDS).filter(k=>HEART_SOUNDS[k].area==='A')},
+       {t:'肺動脈弁領域', keys:Object.keys(HEART_SOUNDS).filter(k=>HEART_SOUNDS[k].area==='P')},
+       {t:'僧帽弁領域（心尖部）', keys:Object.keys(HEART_SOUNDS).filter(k=>HEART_SOUNDS[k].area==='M')}];
+  document.getElementById('refList').innerHTML = groups.map(g=>
+    (g.t ? `<div style="font-size:11.5px;color:var(--ink-2);font-weight:700;margin:10px 0 2px;letter-spacing:.06em">${g.t}</div>` : '') +
+    g.keys.map(k=>{
+      const s = SOUNDS()[k];
+      return `<div class="refrow">
+        <div class="stripe" style="background:${s.color}"></div>
+        <div><div class="nm">${s.label}${s.pos?`<span class="posTag">${s.pos}</span>`:''}</div>
+             <div class="desc">${s.desc}</div></div>
+        <button class="mini" data-prev="${k}">試聴</button>
+      </div>`;
+    }).join('')).join('');
   document.querySelectorAll('[data-prev]').forEach(b=>
     b.addEventListener('click', ()=>preview(b.dataset.prev)));
 }
 
 /* ===================== 共有コード ===================== */
-const SOUND_BY_CODE = Object.fromEntries(Object.entries(SOUNDS).map(([k,v])=>[v.code,k]));
-
+function codeMap(){                       // code → キー（キットごと）
+  const m = {};
+  Object.entries(SOUNDS()).forEach(([k,v])=> m[v.code] = k);
+  return m;
+}
 function b64urlEncode(str){
   const bytes = new TextEncoder().encode(str);
   let bin = ''; bytes.forEach(b=> bin += String.fromCharCode(b));
@@ -731,68 +1018,48 @@ function b64urlDecode(s){
   return new TextDecoder().decode(Uint8Array.from(atob(s), c=>c.charCodeAt(0)));
 }
 function makeCode(map, dxId){
-  const o = {m: ZONES.map(z=>SOUNDS[map[z.id]].code)};
+  const o = {m: LIVE().map(z=>SOUNDS()[map[z.id]].code)};
   if(dxId) o.d = dxId;
-  return 'LUNG1-' + b64urlEncode(JSON.stringify(o));
+  return K().prefix + '-' + b64urlEncode(JSON.stringify(o));
 }
 function parseCode(raw){
   let s = String(raw).trim();
   const inUrl = s.match(/[#?]q=([^&\s]+)/);
   if(inUrl) s = decodeURIComponent(inUrl[1]);
   s = s.replace(/\s+/g,'');
-  if(!s.startsWith('LUNG1-')) throw new Error('コードの形式が違います（LUNG1- で始まります）。');
+
+  const which = Object.keys(KITS).find(k=> s.startsWith(KITS[k].prefix + '-'));
+  if(!which) throw new Error('コードの形式が違います（LUNG1- または HART1- で始まります）。');
+
+  const kk = KITS[which];
   let o;
-  try{ o = JSON.parse(b64urlDecode(s.slice(6))); }
+  try{ o = JSON.parse(b64urlDecode(s.slice(kk.prefix.length + 1))); }
   catch(e){ throw new Error('コードが壊れています。全文が貼れているか確認してください。'); }
-  if(!Array.isArray(o.m) || o.m.length !== ZONES.length) throw new Error('コードの中身が不正です。');
+
+  const live = kk.zones.filter(z=>!z.off);
+  if(!Array.isArray(o.m) || o.m.length !== live.length) throw new Error('コードの中身が不正です。');
+
+  const byCode = {};
+  Object.entries(kk.sounds).forEach(([k,v])=> byCode[v.code] = k);
   const map = {};
   o.m.forEach((c,i)=>{
-    const key = SOUND_BY_CODE[c];
-    if(!key) throw new Error('未知の肺音が含まれています。');
-    map[ZONES[i].id] = key;
+    const key = byCode[c];
+    if(!key) throw new Error('未知の音が含まれています。');
+    map[live[i].id] = key;
   });
-  return {map, dxId: (o.d && SCENARIOS.some(sc=>sc.id===o.d)) ? o.d : null};
-}
-
-/* ===================== 作問 ===================== */
-function buildComposeTable(){
-  document.getElementById('composeTable').innerHTML = ZONES.map(z=>zoneRow(z,'data-cz')).join('');
-  document.querySelectorAll('[data-cz]').forEach(sel=>{
-    sel.addEventListener('change', ()=>{
-      compose[sel.dataset.cz] = sel.value;
-      document.getElementById('codeOut').classList.add('hidden');
-      stopAll(); paintZones();
-    });
-  });
-  document.getElementById('composeDx').innerHTML =
-    '<option value="">— 指定しない —</option>' +
-    SCENARIOS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const dxId = (o.d && kk.scenarios.some(sc=>sc.id===o.d)) ? o.d : null;
+  return {kit:which, map, dxId};
 }
 
 /* ===================== 出題 ===================== */
-function buildAnswerTable(){
-  document.getElementById('answerTable').innerHTML = ZONES.map(z=>`
-    <tr>
-      <td class="k"><span class="num">${z.key}</span>${z.name}</td>
-      <td><select data-ans="${z.id}" disabled>
-        <option value="">— 選択 —</option>
-        ${CHOICES.map(k=>`<option value="${k}">${SOUNDS[k].label}</option>`).join('')}
-      </select></td>
-      <td class="act"><button class="mini" data-listen="${z.id}">聴く</button></td>
-      <td class="vd"><span class="verdict" id="vd-${z.id}"></span></td>
-    </tr>`).join('');
-  document.querySelectorAll('[data-ans]').forEach(s=> s.addEventListener('change', checkReady));
-  document.getElementById('dxSelect').innerHTML =
-    '<option value="">— 選択 —</option>' +
-    SCENARIOS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-}
 function checkReady(){
   const all = [...document.querySelectorAll('[data-ans]')].every(s=>s.value);
   document.getElementById('gradeBtn').disabled = !(quiz && !quiz.graded && all);
 }
 function updateScore(){
+  const s = score[kit];
   document.getElementById('scoreTxt').innerHTML =
-    `正解 <b>${score.correct}</b> / 出題 <b>${score.total}</b> 区画`;
+    `${K().label}　正解 <b>${s.correct}</b> / 出題 <b>${s.total}</b> 部位`;
 }
 function newQuiz(){
   stopAll();
@@ -804,13 +1071,18 @@ function newQuiz(){
       document.getElementById('codeErr').textContent = '共有コードを貼って「読み込んで出題」を押してください。';
       return;
     }
+    if(pendingCode.kit !== kit){ setKit(pendingCode.kit, true); }
     map = Object.assign({}, pendingCode.map); scId = pendingCode.dxId;
   }else if(type === 'scenario'){
-    const sc = SCENARIOS[Math.floor(Math.random()*SCENARIOS.length)];
+    const sc = SCEN()[Math.floor(Math.random()*SCEN().length)];
     map = Object.assign({}, sc.map); scId = sc.id;
   }else{
-    const keys = Object.keys(SOUNDS);
-    map = {}; ZONES.forEach(z=>{ map[z.id] = keys[Math.floor(Math.random()*keys.length)]; });
+    map = {};
+    LIVE().forEach(z=>{
+      const ks = kit==='lung' ? Object.keys(LUNG_SOUNDS)
+                              : Object.keys(HEART_SOUNDS).filter(k=>HEART_SOUNDS[k].area===z.id);
+      map[z.id] = ks[Math.floor(Math.random()*ks.length)];
+    });
   }
 
   quiz = {map, scenarioId:scId, graded:false};
@@ -824,13 +1096,14 @@ function newQuiz(){
   document.getElementById('revealBtn').disabled = false;
   checkReady(); paintZones();
 }
-function normalize(sid){ return SOUNDS[sid].equiv || sid; }
+function normalize(sid){ return SOUNDS()[sid].equiv || sid; }
 
 function grade(reveal){
   if(!quiz) return;
   quiz.graded = true;
+  const live = LIVE();
   let ok = 0;
-  ZONES.forEach(z=>{
+  live.forEach(z=>{
     const sel = document.querySelector(`[data-ans="${z.id}"]`);
     const correct = normalize(quiz.map[z.id]);
     const v = document.getElementById('vd-'+z.id);
@@ -842,23 +1115,23 @@ function grade(reveal){
     }
     sel.value = correct; sel.disabled = true;
   });
-  if(!reveal){ score.correct += ok; score.total += ZONES.length; updateScore(); }
+  if(!reveal){ score[kit].correct += ok; score[kit].total += live.length; updateScore(); }
 
-  const sc = quiz.scenarioId ? SCENARIOS.find(s=>s.id===quiz.scenarioId) : null;
+  const sc = quiz.scenarioId ? SCEN().find(s=>s.id===quiz.scenarioId) : null;
   let dxLine = '';
   if(sc){
     const dxSel = document.getElementById('dxSelect');
     if(!reveal && dxSel.value){
       const hit = dxSel.value === sc.id;
-      dxLine = `<div style="margin-top:7px">病態の推定　<span class="verdict ${hit?'ok':'ng'}">${hit?'✓ 正解':'✕ 誤'}</span></div>`;
+      dxLine = `<div style="margin-top:7px">疾患の推定　<span class="verdict ${hit?'ok':'ng'}">${hit?'✓ 正解':'✕ 誤'}</span></div>`;
     }
     dxSel.value = sc.id; dxSel.disabled = true;
   }
-  const pass = !reveal && ok === ZONES.length;
+  const pass = !reveal && ok === live.length;
   document.getElementById('resultBox').innerHTML = `<div class="result ${pass?'pass':'fail'}">
-      <h3>${reveal ? '解答' : ok + ' / ' + ZONES.length + ' 区画 正解'}</h3>
+      <h3>${reveal ? '解答' : ok + ' / ' + live.length + ' 部位 正解'}</h3>
       ${sc ? `<div><b>${sc.name}</b>　${sc.note}</div>`
-           : '<div>ランダム配置のため対応する病態はありません。</div>'}
+           : '<div>ランダム配置のため対応する疾患はありません。</div>'}
       ${dxLine}
       <div class="after">「次の問題」で続けられます。</div>
     </div>`;
@@ -867,7 +1140,29 @@ function grade(reveal){
   paintZones();
 }
 
-/* ===================== モード ===================== */
+/* ===================== キット／モード切替 ===================== */
+function setKit(k, keepMode){
+  kit = k;
+  stopAll();
+  document.querySelectorAll('.kitBtn').forEach(b=>b.classList.toggle('active', b.dataset.kit===k));
+  document.getElementById('chestLung').classList.toggle('hidden', k!=='lung');
+  document.getElementById('chestHeart').classList.toggle('hidden', k!=='heart');
+  document.getElementById('figureTitle').textContent = K().figureTitle;
+  document.getElementById('assignTitle').textContent = K().assignTitle;
+  document.getElementById('refTitle').textContent    = K().refTitle;
+  document.getElementById('quizLede').textContent    = K().quizLede;
+
+  buildPresets(); buildTables(); buildRef();
+  syncTable('[data-az]', assign[kit]);
+  syncTable('[data-cz]', compose[kit]);
+  document.getElementById('codeOut').classList.add('hidden');
+
+  quiz = null;                      // キットが変わったら出題はやり直し
+  document.getElementById('resultBox').innerHTML = '';
+  updateScore();
+  if(!keepMode && mode==='quiz' && document.getElementById('quizType').value !== 'code') newQuiz();
+  paintZones();
+}
 function setMode(m){
   mode = m;
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x.dataset.mode===m));
@@ -880,14 +1175,22 @@ function setMode(m){
 }
 
 /* ===================== イベント ===================== */
+document.querySelectorAll('.kitBtn').forEach(b=> b.addEventListener('click', ()=>setKit(b.dataset.kit)));
 document.querySelectorAll('.tab').forEach(t=> t.addEventListener('click', ()=>setMode(t.dataset.mode)));
 document.getElementById('stopBtn').addEventListener('click', stopAll);
 document.getElementById('newQuizBtn').addEventListener('click', newQuiz);
 document.getElementById('gradeBtn').addEventListener('click', ()=>grade(false));
 document.getElementById('revealBtn').addEventListener('click', ()=>grade(true));
+
 document.body.addEventListener('click', e=>{
   const b = e.target.closest('[data-listen]');
-  if(b) playZone(b.dataset.listen);
+  if(b){ playZone(b.dataset.listen); return; }
+  const z = e.target.closest('.zone, .site');
+  if(z) playZone(z.dataset.zone);
+});
+document.body.addEventListener('keydown', e=>{
+  const z = e.target.closest && e.target.closest('.zone, .site');
+  if(z && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); playZone(z.dataset.zone); }
 });
 
 document.getElementById('quizType').addEventListener('change', e=>{
@@ -908,23 +1211,26 @@ document.getElementById('loadCodeBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('fromPracticeBtn').addEventListener('click', ()=>{
-  compose = Object.assign({}, assign);
-  syncTable('[data-cz]', compose);
+  compose[kit] = Object.assign({}, assign[kit]);
+  syncTable('[data-cz]', compose[kit]);
   document.getElementById('codeOut').classList.add('hidden');
   stopAll(); paintZones();
 });
 document.getElementById('randomComposeBtn').addEventListener('click', ()=>{
-  const keys = Object.keys(SOUNDS);
-  ZONES.forEach(z=>{ compose[z.id] = keys[Math.floor(Math.random()*keys.length)]; });
-  syncTable('[data-cz]', compose);
+  LIVE().forEach(z=>{
+    const ks = kit==='lung' ? Object.keys(LUNG_SOUNDS)
+                            : Object.keys(HEART_SOUNDS).filter(k=>HEART_SOUNDS[k].area===z.id);
+    compose[kit][z.id] = ks[Math.floor(Math.random()*ks.length)];
+  });
+  syncTable('[data-cz]', compose[kit]);
   document.getElementById('codeOut').classList.add('hidden');
   stopAll(); paintZones();
 });
 document.getElementById('makeCodeBtn').addEventListener('click', ()=>{
-  const code = makeCode(compose, document.getElementById('composeDx').value);
+  const code = makeCode(compose[kit], document.getElementById('composeDx').value);
   document.getElementById('codeField').value = code;
   document.getElementById('codeMeta').textContent =
-    code.length + ' 文字　／　URL共有は末尾に #q=' + code + ' を付けます';
+    `${K().label}の問題・${code.length} 文字　／　URL共有は末尾に #q=${code} を付けます`;
   document.getElementById('codeOut').classList.remove('hidden');
 });
 document.getElementById('copyCodeBtn').addEventListener('click', async ()=>{
@@ -944,13 +1250,13 @@ document.getElementById('tryCodeBtn').addEventListener('click', ()=>{
 
 document.addEventListener('keydown', e=>{
   const t = e.target.tagName;
-  if(t==='SELECT' || t==='INPUT' || t==='TEXTAREA') return;
+  if(t === 'SELECT' || t === 'INPUT' || t === 'TEXTAREA') return;
   if(e.key === 'Escape'){ stopAll(); return; }
-  const z = ZONES.find(z=>z.key === e.key);
+  const z = ZONES().find(z=>z.key === e.key);
   if(z) playZone(z.id);
 });
 
-/* 表示テーマ：システム → ライト → ダーク の順に切り替える */
+/* 表示テーマ：システム → ライト → ダーク */
 const THEMES = [
   {v:null,    label:'表示：自動'},
   {v:'light', label:'表示：ライト'},
@@ -968,12 +1274,13 @@ document.getElementById('themeBtn').addEventListener('click', ()=>{
 });
 
 /* ===================== 初期化 ===================== */
-buildZones(); buildPresets(); buildAssignTable(); buildRef();
-buildComposeTable(); buildAnswerTable();
-syncTable('[data-az]', assign); syncTable('[data-cz]', compose);
-document.querySelector('.preset').classList.add('active');
-document.getElementById('presetNote').innerHTML = '<b>正常</b>　'+SCENARIOS[0].note;
-applyTheme(); updateScore(); paintZones();
+Object.keys(KITS).forEach(k=>{
+  assign[k]  = Object.assign({}, KITS[k].defaults);
+  compose[k] = Object.assign({}, KITS[k].defaults);
+});
+buildLungZones(); buildHeartSites();
+applyTheme();
+setKit('lung', true);
 
 /* URL に #q=… が付いていればその問題を直接開く */
 (function(){
@@ -982,6 +1289,7 @@ applyTheme(); updateScore(); paintZones();
   try{
     const raw = decodeURIComponent(m[1]);
     pendingCode = parseCode(raw);
+    if(pendingCode.kit !== kit) setKit(pendingCode.kit, true);
     document.getElementById('quizType').value = 'code';
     document.getElementById('codeInRow').classList.remove('hidden');
     document.getElementById('codeInField').value = raw;
