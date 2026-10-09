@@ -602,6 +602,8 @@ const LUNG_SOUNDS = {
                 desc:'吸気終末の細かい断続性ラ音。間質性肺炎（Velcro ラ音）。'},
   coarse:      {label:'coarse crackles（水泡音）', short:'水泡音',     code:'cc', file:'sounds/lung/coarse_crackles.mp4', gain:1.00, color:'#a21caf',
                 desc:'粗い湿性の断続性ラ音。肺炎・肺水腫・気管支拡張症。'},
+  rub:         {label:'胸膜摩擦音（friction rub）', short:'摩擦音',     code:'pr', file:'sounds/lung/pleural_rub.mp3',     gain:1.00, color:'#0e7490',
+                desc:'吸気・呼気の両相で聴かれる、革をこするような低音。咳で変わらず、息止めで消える。胸膜炎・肺塞栓。'},
 };
 const LUNG_ZONES = [
   {id:'RU', key:'1', name:'右上肺野', clip:'clipR', box:[94,86,82,128],  cx:136, cy:152},
@@ -628,6 +630,8 @@ const LUNG_SCENARIOS = [
    note:'<b>患側の呼吸音消失＋打診で鼓音</b>。緊張性気胸では気管の健側偏位・頸静脈怒張・血圧低下を伴い、画像を待たず脱気する。'},
   {id:'effusion_L', name:'左胸水貯留', map:{RU:'normal',RL:'normal',LU:'diminished',LL:'absent'},
    note:'貯留部位で呼吸音消失〜減弱＋<b>打診濁音</b>＋声音振盪の減弱。液面上縁では気管支呼吸音を聴くことがある。'},
+  {id:'pleurisy_R', name:'右胸膜炎', map:{RU:'normal',RL:'rub',LU:'normal',LL:'normal'},
+   note:'疼痛部位に一致して限局する<b>胸膜摩擦音</b>。吸気・呼気の両相で聴かれ、咳では変化しない（rhonchi との鑑別）。<b>息止めで消失</b>すれば胸膜由来で、心拍に同期して残れば心膜摩擦音。胸水が増えて胸膜が離れると聴こえなくなる。'},
   {id:'bronchitis', name:'気道分泌物貯留', map:{RU:'rhonchi',RL:'rhonchi',LU:'rhonchi',LL:'normal'},
    note:'低音性の rhonchi。<b>咳嗽により変化・消失する</b>のが特徴で、これが crackles との鑑別点になる。'},
   {id:'atelectasis_R', name:'右下葉無気肺', map:{RU:'normal',RL:'diminished',LU:'normal',LL:'normal'},
@@ -759,7 +763,7 @@ const KITS = {
     assignTitle:'区画ごとの音を割り当てる', refTitle:'肺音リファレンス',
     quizLede:'各区画をクリックして聴診し、聴こえた音を選んでください。',
     /* 解答の選択肢。wheeze_copd は wheezes に統合して採点する */
-    choices: ()=> ['normal','diminished','absent','wheeze','rhonchi','fine','coarse'],
+    choices: ()=> ['normal','diminished','absent','wheeze','rhonchi','fine','coarse','rub'],
     defaults:{RU:'normal',RL:'normal',LU:'normal',LL:'normal'},
   },
   heart: {

@@ -56,10 +56,11 @@ python3 "/Users/nokonoko/Desktop/claude code/lung-auscultation-kit/serve.py"
 | `rhonchi.mp4` | rhonchi（いびき音） |
 | `fine_crackles.mp4` | fine crackles（捻髪音） |
 | `coarse_crackles.mp4` | coarse crackles（水泡音） |
+| `pleural_rub.mp3` | 胸膜摩擦音（hawaiicopd.org より取得） |
 
 「呼吸音消失」は無音として扱う（音源不要）。
 
-未収録：stridor、胸膜摩擦音、気管支呼吸音化。音源を `sounds/` に置き、`index.html` の `SOUNDS` に1行追加すれば選択肢に増やせる。
+未収録：stridor、気管支呼吸音化。音源を `sounds/lung/` に置き、`index.html` の `LUNG_SOUNDS` に1行追加すれば選択肢に増やせる。
 
 教育目的の個人利用を想定。
 

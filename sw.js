@@ -2,7 +2,7 @@
    音源を含めて全部キャッシュするので、一度開けばオフラインでも動きます。
    中身を更新したら CACHE の数字を上げてください（古いキャッシュは自動で消えます）。 */
 
-const CACHE = 'auscultation-trainer-v3';
+const CACHE = 'auscultation-trainer-v4';
 
 /* SW から見た相対パスで解決する（GitHub Pages のサブパス配信に対応） */
 const ASSETS = [
@@ -20,6 +20,7 @@ const ASSETS = [
   './sounds/lung/rhonchi.mp4',
   './sounds/lung/fine_crackles.mp4',
   './sounds/lung/coarse_crackles.mp4',
+  './sounds/lung/pleural_rub.mp3',
   './sounds/heart/01_apex_normal_s1_s2_supine_bell.m4a',
   './sounds/heart/02_apex_split_s1_supine_bell.m4a',
   './sounds/heart/03_apex_s4_lld_bell.m4a',
